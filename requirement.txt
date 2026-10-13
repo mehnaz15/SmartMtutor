@@ -1,5 +1,5 @@
 streamlit==1.65.0
-PyMuPDF==1.26.4
+PyMuPDF==1.28.2
 pytesseract
 Pillow
 google-genai
