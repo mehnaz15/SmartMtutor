@@ -11,6 +11,97 @@ import pymupdf
 import pytesseract
 from PIL import Image
 from google import genai
+import re
+from collections import defaultdict
+from difflib import SequenceMatcher
+
+
+def normalize_question(text):
+    """Normalize question text for comparison."""
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    return " ".join(text.split())
+
+
+def get_keywords(text):
+    """Extract meaningful words from a question."""
+    stop_words = {
+        "the", "is", "are", "was", "were", "a", "an", "and",
+        "or", "of", "to", "in", "on", "for", "with", "by",
+        "what", "why", "how", "explain", "describe", "write",
+        "draw", "give", "discuss", "define", "derive", "from"
+    }
+
+    words = normalize_question(text).split()
+    return {word for word in words if len(word) > 2 and word not in stop_words}
+
+
+def compare_questions(question1, question2):
+    """Return a similarity score between 0 and 1."""
+    q1 = normalize_question(question1)
+    q2 = normalize_question(question2)
+
+    if not q1 or not q2:
+        return 0.0
+
+    if q1 == q2:
+        return 1.0
+
+    words1 = get_keywords(q1)
+    words2 = get_keywords(q2)
+
+    if not words1 or not words2:
+        return SequenceMatcher(None, q1, q2).ratio()
+
+    keyword_similarity = (
+        len(words1 & words2) / len(words1 | words2)
+    )
+
+    text_similarity = SequenceMatcher(None, q1, q2).ratio()
+
+    return max(keyword_similarity, text_similarity)
+
+
+def find_repeated_questions(questions, threshold=0.55):
+    """
+    questions: list of dictionaries containing:
+        question, paper, page
+
+    Returns groups of similar questions.
+    """
+    groups = []
+
+    for item in questions:
+        question = item.get("question", "").strip()
+
+        if not question:
+            continue
+
+        matched_group = None
+
+        for group in groups:
+            score = compare_questions(
+                question,
+                group["items"][0]["question"]
+            )
+
+            if score >= threshold:
+                matched_group = group
+                break
+
+        if matched_group:
+            matched_group["items"].append(item)
+        else:
+            groups.append({
+                "representative": question,
+                "items": [item]
+            })
+
+    return sorted(
+        groups,
+        key=lambda group: len(group["items"]),
+        reverse=True
+    )
 
 
 # =========================================================
