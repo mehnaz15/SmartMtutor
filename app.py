@@ -7,7 +7,7 @@ from difflib import SequenceMatcher
 from datetime import datetime
 
 import streamlit as st
-import fitz as pymupdf
+import pymupdf
 import pytesseract
 from PIL import Image
 from google import genai
