@@ -3,4 +3,3 @@ PyMuPDF==1.26.4
 pytesseract
 Pillow
 google-genai
-
